@@ -1,4 +1,6 @@
 import Test.Hspec
+import Debug.Trace
+
 
 -- Use the following data types for the questions below
 data Tree a = Nil | TreeNode (Tree a) a (Tree a) deriving (Show, Eq)
@@ -93,7 +95,38 @@ breadthFirstTraversal tree = bfs [tree]
 -- Attempy any 3 questions from this category
 -- Question 1
 validNumber :: String -> Bool
-validNumber = undefined
+validNumber input = validNumberHelper1 (removeSpaces input)
+
+isDigit :: Char -> Bool
+isDigit x = x >= '0' && x <= '9'
+
+validNumberHelper1 :: String -> Bool
+validNumberHelper1 [] = False
+validNumberHelper1 input_without_spaces = validNumberHelper2 input_without_spaces
+
+validNumberHelper2 :: String -> Bool
+validNumberHelper2 [] = True
+validNumberHelper2 (x:xs)
+    | x == '+' || x == '-' = numberCheck xs False
+    | otherwise = numberCheck (x:xs) False
+
+numberCheck :: String -> Bool -> Bool
+numberCheck [] _ = True
+numberCheck (x:xs) hasDecimal 
+    | x == '.' = if hasDecimal then False else numberCheck xs True
+    | isDigit x = numberCheck xs hasDecimal
+    | otherwise = False
+
+removeSpaces :: String -> String
+removeSpaces [] = []
+removeSpaces (x:xs) = if x == ' ' then removeSpaces xs else x:removeSpaces xs
+
+decimalCheck :: String -> Bool -> Bool
+decimalCheck [] _ = False
+decimalCheck (x:xs) hasDecimal 
+    | x == '.' = if hasDecimal then False else decimalCheck xs True
+    | isDigit x = decimalCheck xs hasDecimal
+    | otherwise = False
 
 -- Question 2
 swappingNodes :: Tree Int -> Tree Int
@@ -101,7 +134,95 @@ swappingNodes = undefined
 
 -- Question 3
 calculator :: String -> Int
-calculator = undefined
+calculator input = masterFunc (removeSpacesforcalc input)
+
+removeSpacesforcalc :: String -> String
+removeSpacesforcalc [] = []
+removeSpacesforcalc (x:xs) = if x == ' ' then removeSpacesforcalc xs else x:removeSpacesforcalc xs
+
+parenthesisFunc :: (String, String) -> String -> Int
+parenthesisFunc (before, xs) within_brackets = go before xs 0 within_brackets
+
+go :: String -> String -> Int -> String -> Int
+go before [] _ _ = masterFunc before
+go before (x:xs) n wb
+    | x == '(' = go before xs (n + 1) wb
+    | x == ')' =
+        if n == 1 then
+            let evaluated = show (masterFunc wb)
+            in if null xs 
+               then masterFunc (before ++ evaluated) 
+               else go (before ++ evaluated) xs 0 ""
+        else 
+            go before xs (n - 1) wb
+    | n > 0 = go before xs n (wb ++ [x])
+    | otherwise = go (before ++ [x]) xs n wb
+               
+masterFunc :: String -> Int
+masterFunc input_string = 
+  if ((findOperator '(' input_string) /= ("", "")) 
+    then parenthesisFunc (findOperator '(' input_string) ""
+  else
+    let (operator, remainder) = findOperator '*' input_string
+    in if not (null operator)
+         then multiplicationFunc (operator, remainder)
+         else let (operator, remainder) = findOperator '/' input_string
+              in if not (null operator)
+                   then divisionFunc (operator, remainder)
+                   else let (operator, remainder) = findOperator '+' input_string
+                        in if not (null operator)
+                             then additionFunc (operator, remainder)
+                             else let (operator, remainder) = findOperator '-' input_string
+                                  in if not (null operator)
+                                       then subtractionFunc (operator, remainder)
+                                       else read input_string
+
+
+additionFunc :: (String, String) -> Int
+additionFunc (before, after) = 
+  let beforeVal = if myNot (myNull before) then masterFunc before else 0
+      afterVal = if myNot (myNull after) then masterFunc after else 0
+  in beforeVal + afterVal
+
+subtractionFunc :: (String, String) -> Int
+subtractionFunc (before, after) = 
+  let afterVal = if myNot (myNull after) then masterFunc after else 0
+  in -(afterVal)
+
+multiplicationFunc :: (String, String) -> Int
+multiplicationFunc (before, after) = 
+  let beforeVal = if myNot (myNull before) then masterFunc before else 1
+      afterVal = if myNot (myNull after) then masterFunc after else 1
+  in beforeVal * afterVal
+
+divisionFunc :: (String, String) -> Int
+divisionFunc (before, after) = 
+  let beforeVal = if myNot (myNull before) then masterFunc before else 1
+      afterVal = if myNot (myNull after) then masterFunc after else 1
+  in beforeVal `div` afterVal
+
+splitAtChar :: Char -> String -> (String, String)
+splitAtChar _ [] = ("", "")
+splitAtChar ch (x:xs)
+    | x == ch   = ("", xs)
+    | otherwise = let (before, after) = splitAtChar ch xs
+                  in  (x:before, after)
+
+findOperator :: Char -> String -> (String, String)
+findOperator _ [] = ("", "")
+findOperator op input =
+  let (before, after) = splitAtChar op input
+  in if null after
+    then ("", "")
+    else (before, after)
+
+myNull :: [a] -> Bool
+myNull [] = True
+myNull _  = False
+
+myNot :: Bool -> Bool
+myNot True = False
+myNot False = True
 
 -- Question 4
 pathSumSync :: Tree Int -> Tree Int -> Tree Int
